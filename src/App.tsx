@@ -130,6 +130,19 @@ const DAMPING         = 0.87
 const REPEL_STRENGTH  = 4.5
 const CLICK_STRENGTH  = 18
 
+// Skill network — 6 particles connected to labeled pills
+const HERO_SKILLS = ['React', 'TypeScript', 'n8n', 'Figma', 'UI Design', 'Tailwind']
+const SKILL_PARTICLE_INDICES = [7, 38, 74, 115, 155, 192]
+// Label positions as % of container (left 3 = left side, right 3 = right side)
+const SKILL_LABEL_POS = [
+  { x: 13, y: 28 },   // React        — left upper
+  { x:  5, y: 52 },   // TypeScript   — left mid
+  { x: 14, y: 74 },   // n8n          — left lower
+  { x: 80, y: 26 },   // Figma        — right upper
+  { x: 85, y: 51 },   // UI Design    — right mid
+  { x: 79, y: 74 },   // Tailwind     — right lower
+]
+
 // ─── Sphere distribution + 3-D helpers ───────────────────────────────────────
 
 function buildParticles(w: number, h: number): Particle[] {
@@ -180,9 +193,11 @@ function rotatePt(sx: number, sy: number, sz: number, rx: number, ry: number) {
 function ParticleField({
   actionsRef,
   globeRef,
+  skillPosRef,
 }: {
-  actionsRef: React.RefObject<ParticleActions>
-  globeRef:   React.RefObject<GlobeState>
+  actionsRef:  React.RefObject<ParticleActions>
+  globeRef:    React.RefObject<GlobeState>
+  skillPosRef: React.RefObject<Array<{ x: number; y: number }>>
 }) {
   const canvasRef  = useRef<HTMLCanvasElement>(null)
   const mouseRef   = useRef({ x: -500, y: -500 })
@@ -270,6 +285,13 @@ function ParticleField({
         shockwaves.current.push({ x: W / 2, y: H / 2, r: 0,  maxR: diag,       alpha: 1.0 })
         shockwaves.current.push({ x: W / 2, y: H / 2, r: 35, maxR: diag * 0.8, alpha: 0.65 })
         shockwaves.current.push({ x: W / 2, y: H / 2, r: 70, maxR: diag * 0.6, alpha: 0.35 })
+      }
+
+      // ── Expose skill particle positions ───────────────────────────
+      if (skillPosRef.current) {
+        SKILL_PARTICLE_INDICES.forEach((idx, i) => {
+          if (ps[idx]) skillPosRef.current![i] = { x: ps[idx].x, y: ps[idx].y }
+        })
       }
 
       ctx.clearRect(0, 0, W, H)
@@ -415,7 +437,7 @@ function ParticleField({
       canvas.removeEventListener('mousemove', onMove)
       canvas.removeEventListener('click', onClick)
     }
-  }, [actionsRef, globeRef])
+  }, [actionsRef, globeRef, skillPosRef])
 
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ cursor: 'none' }} />
 }
@@ -448,6 +470,96 @@ function CursorClickEffect() {
           />
         ))}
       </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── Skill Network ───────────────────────────────────────────────────────────
+
+function SkillNetwork({
+  skillPosRef,
+  containerRef,
+}: {
+  skillPosRef:  React.RefObject<Array<{ x: number; y: number }>>
+  containerRef: React.RefObject<HTMLElement>
+}) {
+  const svgRef   = useRef<SVGSVGElement>(null)
+  const lineRefs = useRef<(SVGLineElement | null)[]>([])
+  const frameRef = useRef<number>(0)
+
+  useEffect(() => {
+    const update = () => {
+      const svg       = svgRef.current
+      const container = containerRef.current
+      if (!svg || !container || !skillPosRef.current) {
+        frameRef.current = requestAnimationFrame(update)
+        return
+      }
+      const W = container.offsetWidth
+      const H = container.offsetHeight
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`)
+
+      HERO_SKILLS.forEach((_, i) => {
+        const line = lineRefs.current[i]
+        const sp   = skillPosRef.current![i]
+        if (!line || !sp) return
+        const lx = (SKILL_LABEL_POS[i].x / 100) * W
+        const ly = (SKILL_LABEL_POS[i].y / 100) * H
+        line.setAttribute('x1', String(Math.round(sp.x)))
+        line.setAttribute('y1', String(Math.round(sp.y)))
+        line.setAttribute('x2', String(Math.round(lx)))
+        line.setAttribute('y2', String(Math.round(ly)))
+      })
+
+      frameRef.current = requestAnimationFrame(update)
+    }
+    frameRef.current = requestAnimationFrame(update)
+    return () => cancelAnimationFrame(frameRef.current)
+  }, [skillPosRef, containerRef])
+
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {/* Dynamic SVG lines */}
+      <svg
+        ref={svgRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ overflow: 'visible' }}
+      >
+        {HERO_SKILLS.map((_, i) => (
+          <line
+            key={i}
+            ref={el => { lineRefs.current[i] = el }}
+            stroke="rgba(167,139,250,0.28)"
+            strokeWidth="0.8"
+            strokeDasharray="3 5"
+          />
+        ))}
+      </svg>
+
+      {/* Skill label pills */}
+      {HERO_SKILLS.map((name, i) => (
+        <div
+          key={name}
+          className="absolute"
+          style={{
+            left:      `${SKILL_LABEL_POS[i].x}%`,
+            top:       `${SKILL_LABEL_POS[i].y}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div
+            className="px-2.5 py-1 rounded-full font-mono text-[9px] tracking-[0.15em] uppercase whitespace-nowrap"
+            style={{
+              color:       'rgba(167,139,250,0.65)',
+              border:      '1px solid rgba(139,92,246,0.22)',
+              background:  'rgba(6,4,14,0.75)',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            {name}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -860,6 +972,10 @@ export default function App() {
   // Globe rotation state (read directly by canvas each frame)
   const globeRef   = useRef<GlobeState>({ rotX: 0, rotY: 0, velX: 0, velY: 0, dragging: false })
 
+  // Skill network — live particle positions
+  const skillPosRef = useRef<Array<{ x: number; y: number }>>(Array(6).fill({ x: 0, y: 0 }))
+  const heroRef     = useRef<HTMLElement>(null)
+
   // Globe drag handlers — delta-accumulation for high sensitivity
   const lastDrag = useRef({ x: 0, y: 0 })
 
@@ -1026,6 +1142,7 @@ export default function App() {
 
       {/* HERO — fixed in place, sections scroll over it */}
       <section
+        ref={heroRef}
         className="fixed inset-0 overflow-hidden"
         style={{ zIndex: 1 }}
         onMouseDown={onHeroMouseDown}
@@ -1033,7 +1150,8 @@ export default function App() {
         onMouseUp={onHeroMouseUp}
         onMouseLeave={onHeroMouseUp}
       >
-        <ParticleField actionsRef={actionsRef} globeRef={globeRef} />
+        <ParticleField actionsRef={actionsRef} globeRef={globeRef} skillPosRef={skillPosRef} />
+        <SkillNetwork skillPosRef={skillPosRef} containerRef={heroRef} />
 
         {/* Ambient glow — gives the void some depth */}
         <div className="absolute inset-0 pointer-events-none"
