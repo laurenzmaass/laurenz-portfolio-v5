@@ -650,7 +650,7 @@ function CursorTrail({ mouse }: { mouse: { x: number; y: number } }) {
 
 // ─── Misc ─────────────────────────────────────────────────────────────────────
 
-function AnimatedRole() {
+function AnimatedRole({ rainbow = false }: { rainbow?: boolean }) {
   const [index, setIndex] = useState(0)
   useEffect(() => {
     const id = setInterval(() => setIndex(i => (i + 1) % ROLES.length), 2800)
@@ -659,7 +659,9 @@ function AnimatedRole() {
   return (
     <div className="h-5 overflow-hidden relative inline-flex items-center min-w-[180px]">
       <AnimatePresence mode="wait">
-        <motion.span key={index} className="absolute font-mono text-[10px] tracking-[0.2em] text-violet-400 uppercase"
+        <motion.span
+          key={index}
+          className={`absolute font-mono text-[10px] tracking-[0.2em] uppercase ${rainbow ? 'rainbow-text' : 'text-violet-400'}`}
           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
           {ROLES[index]}
@@ -968,34 +970,26 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Rainbow overlay — rotating conic gradient */}
+      {/* Rainbow mode — CSS keyframes injected when active */}
       <AnimatePresence>
         {rainbowOn && (
-          <motion.div
-            key="rainbow-overlay"
-            className="fixed inset-0 z-[3] pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            {/* Rotating conic sweep */}
-            <motion.div
-              className="absolute inset-[-50%]"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
-              style={{
-                background: 'conic-gradient(from 0deg, rgba(255,0,100,0.22), rgba(255,140,0,0.20), rgba(255,255,0,0.18), rgba(0,255,120,0.20), rgba(0,180,255,0.22), rgba(160,0,255,0.22), rgba(255,0,100,0.22))',
-              }}
-            />
-            {/* Pulsing edge glow */}
-            <motion.div
-              className="absolute inset-0"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ boxShadow: 'inset 0 0 120px rgba(139,92,246,0.5)' }}
-            />
-          </motion.div>
+          <style key="rainbow-css">{`
+            @keyframes rainbow-flow {
+              0%   { background-position: 0% center; }
+              100% { background-position: 200% center; }
+            }
+            .rainbow-text {
+              background: linear-gradient(90deg,
+                #ff4080 0%, #ff8800 16%, #ffe000 32%,
+                #00e880 48%, #00c8ff 64%, #9040ff 80%, #ff4080 100%
+              ) !important;
+              background-size: 200% auto !important;
+              -webkit-background-clip: text !important;
+              -webkit-text-fill-color: transparent !important;
+              background-clip: text !important;
+              animation: rainbow-flow 2.2s linear infinite !important;
+            }
+          `}</style>
         )}
       </AnimatePresence>
 
@@ -1075,16 +1069,25 @@ export default function App() {
           >
             <ScrambleName
               text="Laurenz Maass"
-              className="text-2xl sm:text-3xl font-black tracking-tight text-white"
+              className={`text-2xl sm:text-3xl font-black tracking-tight ${rainbowOn ? 'rainbow-text' : 'text-white'}`}
             />
             <span className="text-[#2a2a2a] mx-1">·</span>
-            <AnimatedRole />
+            <AnimatedRole rainbow={rainbowOn} />
           </motion.div>
           <motion.div className="flex flex-wrap items-center gap-5"
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55, duration: 0.7 }}>
             <a href="mailto:laurenz.maass@gmail.com"
-              className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium transition-all duration-300 hover:scale-105 cursor-none shadow-[0_0_24px_rgba(139,92,246,0.35)]">
+              className="flex items-center gap-2.5 px-5 py-2.5 rounded-full text-white text-xs font-medium transition-all duration-300 hover:scale-105 cursor-none"
+              style={rainbowOn ? {
+                background: 'linear-gradient(90deg,#ff4080,#ff8800,#ffe000,#00e880,#00c8ff,#9040ff,#ff4080)',
+                backgroundSize: '200% auto',
+                animation: 'rainbow-flow 2.2s linear infinite',
+                boxShadow: '0 0 28px rgba(255,100,180,0.45), 0 0 28px rgba(0,200,255,0.35)',
+              } : {
+                background: 'rgb(124,58,237)',
+                boxShadow: '0 0 24px rgba(139,92,246,0.35)',
+              }}>
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               Get in touch
             </a>
@@ -1094,6 +1097,22 @@ export default function App() {
             </span>
           </motion.div>
         </div>
+
+        {/* Rainbow rim — edge glow only when rainbow mode on */}
+        <AnimatePresence>
+          {rainbowOn && (
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              style={{
+                boxShadow: 'inset 0 0 60px rgba(255,80,120,0.18), inset 0 0 60px rgba(0,200,255,0.14), inset 0 0 120px rgba(140,60,255,0.10)',
+              }}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Hint — bottom-right */}
         <motion.div className="absolute bottom-12 right-6 sm:right-10 z-10 text-right"
