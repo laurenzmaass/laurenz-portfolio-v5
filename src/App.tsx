@@ -565,6 +565,55 @@ function ShootingStars() {
   )
 }
 
+// ─── Cursor ───────────────────────────────────────────────────────────────────
+
+function Cursor({ mouse }: { mouse: { x: number; y: number } }) {
+  const [isHovering, setIsHovering] = useState(false)
+
+  useEffect(() => {
+    const check = (e: MouseEvent) => {
+      const el = e.target as HTMLElement
+      const interactive =
+        !!el.closest('a, button, [role="button"], label') ||
+        el.tagName === 'INPUT' ||
+        el.tagName === 'SELECT' ||
+        el.tagName === 'TEXTAREA'
+      setIsHovering(interactive)
+    }
+    window.addEventListener('mousemove', check)
+    return () => window.removeEventListener('mousemove', check)
+  }, [])
+
+  return (
+    <>
+      <motion.div
+        className="fixed top-0 left-0 rounded-full pointer-events-none"
+        style={{ width: 6, height: 6, background: '#a78bfa', zIndex: 9999, mixBlendMode: 'screen' }}
+        animate={{ x: mouse.x - 3, y: mouse.y - 3 }}
+        transition={{ type: 'spring', stiffness: 900, damping: 42, mass: 0.08 }}
+      />
+      <AnimatePresence>
+        {isHovering && (
+          <motion.div
+            key="cursor-ring"
+            className="fixed top-0 left-0 rounded-full pointer-events-none"
+            style={{ width: 32, height: 32, border: '1px solid rgba(167,139,250,0.65)', zIndex: 9998 }}
+            initial={{ opacity: 0, scale: 0.4, x: mouse.x - 16, y: mouse.y - 16 }}
+            animate={{ opacity: 1, scale: 1, x: mouse.x - 16, y: mouse.y - 16 }}
+            exit={{ opacity: 0, scale: 0.4 }}
+            transition={{
+              x: { type: 'spring', stiffness: 200, damping: 24, mass: 0.5 },
+              y: { type: 'spring', stiffness: 200, damping: 24, mass: 0.5 },
+              opacity: { duration: 0.14 },
+              scale: { duration: 0.14 },
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
 // ─── Cursor Trail ─────────────────────────────────────────────────────────────
 
 function CursorTrail({ mouse }: { mouse: { x: number; y: number } }) {
@@ -844,15 +893,13 @@ export default function App() {
   const globeRef   = useRef<GlobeState>({ rotX: 0, rotY: 0, velX: 0, velY: 0, dragging: false })
 
   // Globe drag handlers — delta-accumulation for high sensitivity
-  const lastDrag      = useRef({ x: 0, y: 0 })
-  const [dragging, setDragging] = useState(false)
+  const lastDrag = useRef({ x: 0, y: 0 })
 
   const onHeroMouseDown = useCallback((e: React.MouseEvent) => {
     lastDrag.current = { x: e.clientX, y: e.clientY }
     globeRef.current.dragging = true
     globeRef.current.velX = 0
     globeRef.current.velY = 0
-    setDragging(true)
   }, [])
 
   const onHeroMouseMove = useCallback((e: React.MouseEvent) => {
@@ -867,7 +914,6 @@ export default function App() {
 
   const onHeroMouseUp = useCallback(() => {
     globeRef.current.dragging = false
-    setDragging(false)
   }, [])
 
   // Easter egg state
@@ -905,8 +951,8 @@ export default function App() {
       <motion.div style={{ scaleX }} className="fixed top-0 left-0 right-0 h-[2px] bg-violet-500 origin-left z-50" />
 
       <ShootingStars />
-      <CursorTrail mouse={mouse} />
       <CursorClickEffect />
+      <Cursor mouse={mouse} />
 
       {/* Screen flash — easter egg 1 */}
       <AnimatePresence>
@@ -953,25 +999,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Cursor dot */}
-      <motion.div className="fixed top-0 left-0 w-3 h-3 rounded-full bg-violet-400 pointer-events-none z-50 mix-blend-screen"
-        animate={{ x: mouse.x - 6, y: mouse.y - 6 }}
-        transition={{ type: 'spring', stiffness: 700, damping: 30, mass: 0.12 }} />
-      {/* Cursor ring — scales when dragging */}
-      <motion.div className="fixed top-0 left-0 rounded-full pointer-events-none z-50"
-        animate={{
-          x: mouse.x - 20, y: mouse.y - 20,
-          scale: dragging ? 2.0 : 1,
-          borderColor: dragging ? 'rgba(139,92,246,0.55)' : 'rgba(139,92,246,0.25)',
-        }}
-        style={{ width: 40, height: 40, border: '1px solid rgba(139,92,246,0.25)' }}
-        transition={{
-          x: { type: 'spring', stiffness: 180, damping: 22, mass: 0.6 },
-          y: { type: 'spring', stiffness: 180, damping: 22, mass: 0.6 },
-          scale: { type: 'spring', stiffness: 300, damping: 20 },
-          borderColor: { duration: 0.2 },
-        }}
-      />
 
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-40 flex justify-between items-center px-6 sm:px-10 py-5">
@@ -1019,9 +1046,10 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* HERO */}
+      {/* HERO — fixed in place, sections scroll over it */}
       <section
-        className="relative h-screen overflow-hidden"
+        className="fixed inset-0 overflow-hidden"
+        style={{ zIndex: 1 }}
         onMouseDown={onHeroMouseDown}
         onMouseMove={onHeroMouseMove}
         onMouseUp={onHeroMouseUp}
@@ -1074,6 +1102,10 @@ export default function App() {
         </motion.div>
       </section>
 
+      {/* Spacer — reserves the hero's height in normal flow */}
+      <div className="h-screen" />
+      {/* Content that slides over the fixed hero */}
+      <div className="relative bg-[#06040e]" style={{ zIndex: 2 }}>
       <Marquee text="Frontend Developer · Vibecoder · Automation Builder · UI Designer · Berlin · n8n · React · Make · Open to Work" />
       <AboutSection />
       <Marquee text="UI Design · React · TypeScript · Tailwind · n8n · Make · Figma · Vibe Coding · Workflow Automation · API Integration" />
@@ -1095,6 +1127,7 @@ export default function App() {
           >.</button>
         </span>
       </footer>
+      </div>{/* end content overlay */}
     </div>
   )
 }
