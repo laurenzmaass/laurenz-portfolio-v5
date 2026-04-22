@@ -914,7 +914,7 @@ export default function App() {
   }
 
   return (
-    <div className="bg-[#06040e] text-[#e8e8e8] min-h-screen font-sans antialiased cursor-none overflow-x-hidden">
+    <div className={`bg-[#06040e] text-[#e8e8e8] min-h-screen font-sans antialiased cursor-none overflow-x-hidden${rainbowOn ? ' rainbow-mode' : ''}`}>
 
       <motion.div style={{ scaleX }} className="fixed top-0 left-0 right-0 h-[2px] bg-violet-500 origin-left z-50" />
 
@@ -944,7 +944,25 @@ export default function App() {
               0%   { background-position: 0% center; }
               100% { background-position: 200% center; }
             }
+            /* Applied via .rainbow-text class on specific elements */
             .rainbow-text {
+              background: linear-gradient(90deg,
+                #ff4080 0%, #ff8800 16%, #ffe000 32%,
+                #00e880 48%, #00c8ff 64%, #9040ff 80%, #ff4080 100%
+              ) !important;
+              background-size: 200% auto !important;
+              -webkit-background-clip: text !important;
+              -webkit-text-fill-color: transparent !important;
+              background-clip: text !important;
+              animation: rainbow-flow 2.2s linear infinite !important;
+            }
+            /* Global: all visible text elements */
+            .rainbow-mode span,
+            .rainbow-mode p,
+            .rainbow-mode h1, .rainbow-mode h2, .rainbow-mode h3,
+            .rainbow-mode h4, .rainbow-mode h5, .rainbow-mode h6,
+            .rainbow-mode button,
+            .rainbow-mode li {
               background: linear-gradient(90deg,
                 #ff4080 0%, #ff8800 16%, #ffe000 32%,
                 #00e880 48%, #00c8ff 64%, #9040ff 80%, #ff4080 100%
