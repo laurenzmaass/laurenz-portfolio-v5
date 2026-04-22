@@ -614,40 +614,6 @@ function Cursor({ mouse }: { mouse: { x: number; y: number } }) {
   )
 }
 
-// ─── Cursor Trail ─────────────────────────────────────────────────────────────
-
-function CursorTrail({ mouse }: { mouse: { x: number; y: number } }) {
-  const [dots, setDots] = useState<{ x: number; y: number; id: number }[]>([])
-  const nextId  = useRef(0)
-  const prevPos = useRef({ x: -500, y: -500 })
-  useEffect(() => {
-    const dx = mouse.x - prevPos.current.x, dy = mouse.y - prevPos.current.y
-    if (Math.sqrt(dx * dx + dy * dy) < 5) return
-    prevPos.current = { x: mouse.x, y: mouse.y }
-    const id = nextId.current++
-    setDots(prev => [...prev.slice(-20), { x: mouse.x, y: mouse.y, id }])
-  }, [mouse.x, mouse.y])
-  return (
-    <>
-      {dots.map((dot, i) => {
-        const size = 3 + (i / dots.length) * 7
-        return (
-          <motion.div key={dot.id} className="fixed top-0 left-0 rounded-full pointer-events-none z-[45]"
-            style={{
-              x: dot.x - size / 2, y: dot.y - size / 2,
-              width: size, height: size,
-              background: `hsl(${255 + i * 2}, 70%, ${50 + i * 2}%)`,
-            }}
-            initial={{ opacity: 0.75, scale: 1 }}
-            animate={{ opacity: 0, scale: 0.1 }}
-            transition={{ duration: 0.65, ease: 'easeOut' }}
-          />
-        )
-      })}
-    </>
-  )
-}
-
 // ─── Misc ─────────────────────────────────────────────────────────────────────
 
 function AnimatedRole({ rainbow = false }: { rainbow?: boolean }) {
