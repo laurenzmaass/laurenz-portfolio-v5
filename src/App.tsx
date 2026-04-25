@@ -481,7 +481,7 @@ function SkillNetwork({
   containerRef,
 }: {
   skillPosRef:  React.RefObject<Array<{ x: number; y: number }>>
-  containerRef: React.RefObject<HTMLElement>
+  containerRef: React.RefObject<HTMLElement | null>
 }) {
   const svgRef   = useRef<SVGSVGElement>(null)
   const lineRefs = useRef<(SVGLineElement | null)[]>([])
